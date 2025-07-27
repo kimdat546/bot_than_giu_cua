@@ -1,0 +1,150 @@
+{
+  "name": "Bank Email Transaction Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "protocol": "imap",
+        "server": "={{ $env.EMAIL_IMAP_HOST }}",
+        "port": 993,
+        "secure": true,
+        "email": "={{ $env.EMAIL_USERNAME }}",
+        "password": "={{ $env.EMAIL_PASSWORD }}",
+        "folder": "INBOX",
+        "searchCriteria": {
+          "since": "={{ $now.minus({hours: 1}).toISO() }}",
+          "unseen": true
+        }
+      },
+      "id": "email-imap",
+      "name": "Email IMAP",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.subject }}",
+              "operation": "contains",
+              "value2": "transaction"
+            }
+          ]
+        }
+      },
+      "id": "filter-bank-emails",
+      "name": "Filter Bank Emails",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/webhook/email",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"subject\": \"{{ $json.subject }}\",\n  \"body\": \"{{ $json.text }}\",\n  \"from\": \"{{ $json.from.value[0].address }}\"\n}"
+      },
+      "id": "send-to-bot",
+      "name": "Send to Bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 220]
+    },
+    {
+      "parameters": {
+        "spreadsheetId": "={{ $env.GOOGLE_SHEETS_ID }}",
+        "sheetName": "Email_Log",
+        "columnToMatchOn": "A",
+        "valueToMatchOn": "={{ $json.messageId }}",
+        "valuesToWrite": {
+          "A": "={{ $json.messageId }}",
+          "B": "={{ $json.subject }}",
+          "C": "={{ $json.from.value[0].address }}",
+          "D": "={{ $now.toISO() }}",
+          "E": "processed"
+        }
+      },
+      "id": "log-to-sheets",
+      "name": "Log to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1120, 220]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Email IMAP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email IMAP": {
+      "main": [
+        [
+          {
+            "node": "Filter Bank Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Bank Emails": {
+      "main": [
+        [
+          {
+            "node": "Send to Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Bot": {
+      "main": [
+        [
+          {
+            "node": "Log to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "settings": {
+    "timezone": "UTC"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1"
+}

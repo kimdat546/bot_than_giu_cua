@@ -8,8 +8,16 @@ class GoogleSheetsService {
     let authConfig;
     if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
       // Use JSON string from environment variable (for Docker/production)
+      let jsonString = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+      
+      // Handle double-escaped JSON from environment variables
+      if (jsonString.startsWith('{"') && jsonString.includes('\\"')) {
+        // Remove escape characters for properly formatted JSON
+        jsonString = jsonString.replace(/\\"/g, '"').replace(/\\n/g, '\n');
+      }
+      
       authConfig = {
-        credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+        credentials: JSON.parse(jsonString),
         scopes: ['https://www.googleapis.com/auth/spreadsheets']
       };
     } else {

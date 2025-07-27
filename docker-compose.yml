@@ -13,6 +13,7 @@ services:
       # Google Sheets Configuration
       - GOOGLE_SHEETS_ID=${GOOGLE_SHEETS_ID}
       - GOOGLE_SERVICE_ACCOUNT_KEY=${GOOGLE_SERVICE_ACCOUNT_KEY}
+      - GOOGLE_SERVICE_ACCOUNT_JSON=${GOOGLE_SERVICE_ACCOUNT_JSON}
       
       # Gemini AI Configuration
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -34,9 +35,9 @@ services:
     ports:
       - "${PORT:-3000}:3000"
     
-    volumes:
+    # volumes:
       # Mount Google service account key if using file path
-      - ${GOOGLE_SERVICE_ACCOUNT_KEY_FILE:-./service-account.json}:/app/service-account.json:ro
+      # - ./service-account.json:/app/service-account.json:ro
     
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => { process.exit(1); });"]

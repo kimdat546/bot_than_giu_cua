@@ -3,10 +3,24 @@ const { google } = require('googleapis');
 class GoogleSheetsService {
   constructor() {
     this.sheetsId = process.env.GOOGLE_SHEETS_ID;
-    this.auth = new google.auth.GoogleAuth({
-      keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
+    
+    // Support both file path and JSON string
+    let authConfig;
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      // Use JSON string from environment variable (for Docker/production)
+      authConfig = {
+        credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+        scopes: ['https://www.googleapis.com/auth/spreadsheets']
+      };
+    } else {
+      // Fall back to key file path (for local development)
+      authConfig = {
+        keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets']
+      };
+    }
+
+    this.auth = new google.auth.GoogleAuth(authConfig);
     this.sheets = google.sheets({ version: 'v4', auth: this.auth });
   }
 

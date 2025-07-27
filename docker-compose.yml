@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  finance-bot:
+    build: .
+    container_name: personal-finance-bot
+    restart: unless-stopped
+    environment:
+      # Telegram Configuration
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
+      
+      # Google Sheets Configuration
+      - GOOGLE_SHEETS_ID=${GOOGLE_SHEETS_ID}
+      - GOOGLE_SERVICE_ACCOUNT_KEY=${GOOGLE_SERVICE_ACCOUNT_KEY}
+      
+      # Gemini AI Configuration
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      
+      # n8n Configuration
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - N8N_API_KEY=${N8N_API_KEY}
+      
+      # Email Configuration (optional)
+      - EMAIL_IMAP_HOST=${EMAIL_IMAP_HOST:-imap.gmail.com}
+      - EMAIL_IMAP_PORT=${EMAIL_IMAP_PORT:-993}
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      
+      # Server Configuration
+      - PORT=${PORT:-3000}
+      - NODE_ENV=${NODE_ENV:-production}
+    
+    ports:
+      - "${PORT:-3000}:3000"
+    
+    volumes:
+      # Mount Google service account key if using file path
+      - ${GOOGLE_SERVICE_ACCOUNT_KEY_FILE:-./service-account.json}:/app/service-account.json:ro
+    
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => { process.exit(1); });"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - finance-network
+
+networks:
+  finance-network:
+    driver: bridge
